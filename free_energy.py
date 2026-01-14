@@ -5,7 +5,6 @@ from torch.func import vmap, jacrev
 from scipy.optimize import minimize
 import scipy.integrate as integrate
 import tqdm
-from nuqls.posterior import Nuqls
 from torch.utils.data import Dataset
 torch.set_default_dtype(torch.float64)
 '''
@@ -773,58 +772,7 @@ def nn_test(n, layerwidth, nl_name, epochs, lr, lam, gam, verbose=False):
 
     return train_loss, test_loss
 
-def nuqls_test(n, layerwidth, nl_name, epochs, lr, lam, gam, verbose=False):
-    nl_func,_,_ = nonlin(nl_name,return_a=True)
 
-    X_train = torch.randn((n,layerwidth[0]),dtype=torch.float64)
-
-    Y_train = torch.randn((n,1), dtype=torch.float64)*np.sqrt(gam)
-
-    X_test = torch.randn((n,layerwidth[0]),dtype=torch.float64) / (layerwidth[0]**0.5)
-    Y_test = torch.randn((n,1), dtype=torch.float64)*np.sqrt(gam)
-
-    net = variable_mlp(layerwidth, nl_func)
-
-    # Train network
-    optimizer = torch.optim.SGD(net.parameters(), lr=lr, momentum=0.9, weight_decay=lam)
-    loss_fn = torch.nn.MSELoss()
-    for i in range(epochs):
-        optimizer.zero_grad()
-        pred = net(X_train)
-        loss = loss_fn(pred,Y_train)
-        loss.backward()
-        optimizer.step()
-        if verbose:
-            print(loss.item())
-    
-    if verbose:
-        print(f'loss = {loss.item():.4}')
-
-    class toy_dataset(Dataset):
-        def __init__(self,x,y):
-            self.x = x
-            self.y = y
-
-        def __len__(self):
-            return self.x.shape[0]
-
-        def __getitem__(self, i):
-            return self.x[i], self.y[i]
-
-    
-    nuqls_posterior = Nuqls(net, task='regression', full_dataset=False)
-    res = nuqls_posterior.train(train=toy_dataset(X_train,Y_train), 
-                        train_bs=n // 5, 
-                        S = 100, 
-                        scale=0.01, 
-                        lr=lr, 
-                        epochs=20, 
-                        mu=0.9,
-                        verbose=verbose)
-
-    nuqls_posterior.HyperparameterTuning(toy_dataset(X_train,Y_train), left=0.001, right=1000, its=200, verbose=verbose)
-
-    return loss.item(), nuqls_posterior.scale_cal
 
 def ck_limiting_case_small(lam,gam,gamma,b_sigma):
     L = len(gamma)-1
