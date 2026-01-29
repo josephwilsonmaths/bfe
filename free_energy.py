@@ -563,6 +563,7 @@ def empirical_energy_custom_welfords(iterations,
                                      gam, 
                                      b_sigma, 
                                      a_sigma, 
+                                     input_data='gaussian',
                                      mX=None, 
                                      mY = None, 
                                      epochs=0, 
@@ -586,10 +587,10 @@ def empirical_energy_custom_welfords(iterations,
         M2 = 0
         w1 = torch.randn(d)
         for idy in range(iterations): # iterate through the iteration numbers
-            if mX is None:
+            if input_data == 'gaussian':
                 X = torch.randn(n,d) / (d**0.5)
                 y = torch.randn(n)
-            elif mX == 'teacher':
+            elif input_data == 'teacher':
                 X = torch.randn(n,d) / (d**0.5)
                 y = torch.sin(X @ torch.ones(d))
                 y = y - y.mean()
